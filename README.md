@@ -291,4 +291,677 @@ Using YAML files to create AWS resources with AWS CloudFormation provides severa
 
 In summary, AWS CloudFormation allows you to create and manage AWS resources using YAML or JSON templates. Using YAML files to define your infrastructure provides several benefits, such as consistency, efficiency, and flexibility.
 
+---
+
+## Build AWS Services using CloudFormation YAML
+
+1- ElasticLoadBalanced example
+
+```html
+Resources:
+  MyELB:
+    Type: 'AWS::ElasticLoadBalancing::LoadBalancer'
+    Properties:
+      AvailabilityZones:
+        - us-west-2a
+        - us-west-2b
+      Listeners:
+        - LoadBalancerPort: '80'
+          Protocol: 'HTTP'
+          InstancePort: '80'
+          InstanceProtocol: 'HTTP'
+      HealthCheck:
+        Target: 'HTTP:80/'
+        HealthyThreshold: '3'
+        UnhealthyThreshold: '5'
+        Interval: '30'
+        Timeout: '5'
+      SecurityGroups:
+        - sg-0123456789abcdef0
+      Subnets:
+        - subnet-0123456789abcdef0
+        - subnet-0123456789abcdef1
+```
+In this example, we're creating an ELB with the following properties:
+
+- Availability Zones: The ELB will be created in two different availability zones in the us-west-2 region.
+- Listeners: The ELB will listen on port 80 and forward traffic to instances on port 80 using the HTTP protocol.
+- Health Check: The ELB will perform an HTTP health check on port 80 every 30 seconds, with a timeout of 5 seconds. The health check will be considered successful if it returns a 200 status code after 3 attempts, and unsuccessful if it returns a 200 status code after 5 attempts.
+- Security Groups: The ELB will be associated with a security group identified by its ID.
+- Subnets: The ELB will be associated with two subnets identified by their IDs.
+
+To create the ELB using this YAML file, you can use the AWS CloudFormation console, AWS CLI, or AWS SDKs. Once the stack is created, you can use the ELB to distribute traffic to your instances.
+
+2- AWS Lamda's example
+
+```html
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS Lambda function
+
+Resources:
+  LambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: MyLambdaFunction
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => {
+            console.log('Hello from Lambda!');
+            return 'Lambda executed successfully!';
+          }
+      Runtime: nodejs14.x
+
+  LambdaExecutionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: LambdaExecutionRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: LambdaExecutionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: arn:aws:logs:*:*:*
+```
+
+3. AWS Cognito example:
+
+```html
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS Cognito User Pool
+
+Resources:
+  CognitoUserPool:
+    Type: 'AWS::Cognito::UserPool'
+    Properties:
+      UserPoolName: MyUserPool
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+          RequireUppercase: true
+      Schema:
+        - AttributeDataType: String
+          Name: email
+          Required: true
+          Mutable: true
+      UsernameAttributes:
+        - email
+
+  CognitoUserPoolClient:
+    Type: 'AWS::Cognito::UserPoolClient'
+    Properties:
+      UserPoolId: !Ref CognitoUserPool
+      ClientName: MyUserPoolClient
+
+Outputs:
+  UserPoolId:
+    Value: !Ref CognitoUserPool
+  UserPoolClientId:
+    Value: !Ref CognitoUserPoolClient
+```
+
+This template creates an AWS Cognito User Pool (`CognitoUserPool`) and a User Pool Client (`CognitoUserPoolClient`). The User Pool is configured to auto-verify email addresses, enforce a password policy, and require users to specify their email address as their username. The User Pool Client is associated with the User Pool.
+
+The `Outputs` section of the template exports the `UserPoolId` and `UserPoolClientId` values, which can be used in other parts of the CloudFormation stack.
+
+4. AWS Amplify example:
+
+```html
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS Amplify app
+
+Resources:
+  AmplifyApp:
+    Type: 'AWS::Amplify::App'
+    Properties:
+      Name: MyAmplifyApp
+      Repository: https://github.com/aws-samples/aws-amplify-graphql.git
+      OAuthToken: !Sub '{{resolve:ssm:/my/ssm/parameter}}'
+      EnvironmentVariables:
+        - Name: API_URL
+          Value: https://my-api.example.com/graphql
+        - Name: API_KEY
+          Value: !Sub '{{resolve:ssm:/my/ssm/parameter}}'
+
+  AmplifyBranch:
+    Type: 'AWS::Amplify::Branch'
+    Properties:
+      AppId: !Ref AmplifyApp
+      BranchName: main
+      EnvironmentVariables:
+        - Name: API_URL
+          Value: https://my-api.example.com/graphql
+        - Name: API_KEY
+          Value: !Sub '{{resolve:ssm:/my/ssm/parameter}}'
+
+Outputs:
+  AppId:
+    Value: !Ref AmplifyApp
+  AppName:
+    Value: !GetAtt AmplifyApp.Name
+  BranchName:
+    Value: !Ref AmplifyBranch
+```
+This template creates an AWS Amplify app (`AmplifyApp`) and an Amplify branch (`AmplifyBranch`). The app is configured with a GitHub repository, OAuth token, and environment variables for the API URL and API key. The branch is associated with the app and has its own environment variables.
+
+4. AWS Application Load Balancer
+
+```html
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS Application Load Balancer
+
+Resources:
+  LoadBalancer:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Properties:
+      Name: MyLoadBalancer
+      Scheme: internet-facing
+      Type: application
+      IpAddressType: ipv4
+      SecurityGroups:
+        - !Ref LoadBalancerSecurityGroup
+      Subnets:
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
+
+  LoadBalancerSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: LoadBalancerSecurityGroup
+      GroupDescription: Security group for the load balancer
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+
+  TargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      Name: MyTargetGroup
+      Protocol: HTTP
+      Port: 80
+      VpcId: !Ref VPC
+      TargetType: ip
+      HealthCheckIntervalSeconds: 30
+      HealthCheckPath: /health
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+
+  Listener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Protocol: HTTP
+      Port: 80
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+
+Outputs:
+  LoadBalancerDNSName:
+    Value: !GetAtt LoadBalancer.DNSName
+```
+
+This template creates an AWS Application Load Balancer (`LoadBalancer`) with a security group (`LoadBalancerSecurityGroup`) and a target group (`TargetGroup`). The load balancer is associated with two public subnets and allows traffic on port 80. The target group is configured with a health check path and protocol.
+
+The `Listener` resource sets up the forwarding rules for the load balancer. In this case, all incoming traffic on port 80 is forwarded to the target group.
+
+The `Outputs` section of the template exports the `LoadBalancerDNSName` value, which can be used to access the load balancer.
+
+5. AWS ECS/EKS example
+
+```html
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS ECS/EKS Cluster
+
+Parameters:
+  ClusterType:
+    Type: String
+    Default: ecs
+    AllowedValues:
+      - ecs
+      - eks
+
+Resources:
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: MyVPC
+
+  PublicSubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: PublicSubnet1
+
+  PublicSubnet2:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: PublicSubnet2
+
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: InternetGateway
+
+  GatewayAttachment:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  RouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: RouteTable
+
+  PublicRoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn: GatewayAttachment
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  RouteTableAssociation1:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref RouteTable
+
+  RouteTableAssociation2:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref RouteTable
+
+  Cluster:
+    Type: 'AWS::ECS::Cluster'
+    Properties:
+      ClusterName: MyCluster
+
+  TaskDefinition:
+    Type: 'AWS::ECS::TaskDefinition'
+    Properties:
+      Family: MyTaskDefinition
+      ContainerDefinitions:
+        - Name: MyContainer
+          Image: nginx
+          PortMappings:
+            - ContainerPort: 80
+
+  Service:
+    Type: 'AWS::ECS::Service'
+    Properties:
+      Cluster: !Ref Cluster
+      ServiceName: MyService
+      TaskDefinition: !Ref TaskDefinition
+      DesiredCount: 1
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets:
+            - !Ref PublicSubnet1
+            - !Ref PublicSubnet2
+
+Outputs:
+  ClusterArn:
+    Value: !GetAtt Cluster.Arn
+  ServiceArn:
+    Value: !GetAtt Service.Arn
+```
+
+This template creates an AWS ECS or EKS cluster depending on the value of the `ClusterType` parameter. It also creates a VPC with two public subnets, an internet gateway, and a route table with a default route to the internet. The cluster is created with a task definition that defines a single container running NGINX. A service is created to run the task definition with a desired count of 1 and a Fargate launch type. The service is also configured with an AWS VPC configuration that assigns a public IP address and uses the two public subnets created earlier.
+
+6. AWS VPCs example
+
+```html
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS VPC with public and private subnets
+
+Resources:
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: MyVPC
+
+  PublicSubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: PublicSubnet1
+
+  PublicSubnet2:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: PublicSubnet2
+
+  PrivateSubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.3.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: PrivateSubnet1
+
+  PrivateSubnet2:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.4.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: PrivateSubnet2
+
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: InternetGateway
+
+  GatewayAttachment:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  RouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: RouteTable
+
+  PublicRoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn: GatewayAttachment
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PrivateRoute:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+
+  NatGateway:
+    Type: 'AWS::EC2::NatGateway'
+    Properties:
+      AllocationId: !GetAtt ElasticIP.AllocationId
+      SubnetId: !Ref PublicSubnet1
+
+  ElasticIP:
+    Type: 'AWS::EC2::EIP'
+
+  PublicSubnet1RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref RouteTable
+
+  PublicSubnet2RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref RouteTable
+
+  PrivateSubnet1RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PrivateSubnet1
+      RouteTableId: !Ref RouteTable
+
+  PrivateSubnet2RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PrivateSubnet2
+      RouteTableId: !Ref RouteTable
+
+Outputs:
+  VPCId:
+    Value: !Ref VPC
+  PublicSubnet1Id:
+    Value: !Ref PublicSubnet1
+  PublicSubnet2Id:
+    Value: !Ref PublicSubnet2
+  PrivateSubnet1Id:
+    Value: !Ref PrivateSubnet1
+  PrivateSubnet2Id:
+    Value: !Ref PrivateSubnet2
+  InternetGatewayId:
+    Value: !Ref InternetGateway
+  NatGatewayId:
+    Value: !Ref NatGateway
+```
+This template creates a VPC with two public subnets (`PublicSubnet1` and `PublicSubnet2`) and two private subnets (`PrivateSubnet1` and `PrivateSubnet2`). The public subnets are associated with a default route to an internet gateway (`InternetGateway`) and have the `MapPublicIpOnLaunch` property set to true, which allows instances launched in these subnets to be assigned public IP addresses. The private subnets do not have direct access to the internet and are associated with a default route to a NAT gateway (`NatGateway`) that is deployed in the public subnet 1.
+
+7. IAM security policies example
+
+```html
+AWSTemplateFormatVersion: '2010-09-09'
+Description: IAM policy example
+
+Resources:
+  Policy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: MyPolicy
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+            Resource: arn:aws:s3:::my-bucket/*
+
+  User:
+    Type: 'AWS::IAM::User'
+    Properties:
+      UserName: MyUser
+
+  UserPolicyAttachment:
+    Type: 'AWS::IAM::UserPolicyAttachment'
+    Properties:
+      UserName: !Ref User
+      PolicyArn: !Ref Policy
+
+Outputs:
+  PolicyArn:
+    Value: !Ref Policy
+  PolicyName:
+    Value: !GetAtt Policy.PolicyName
+```
+8. Building AWS architectures for Web Applications using VPCs, IAM security policies, Kubernetes, Docker and MongoDB Atlas
+
+```html
+# Create a VPC
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: my-vpc
+
+# Create an IAM user and policy
+  IAMUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: my-user
+  IAMPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: my-policy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:*
+            Resource: "*"
+      Users:
+        - Ref: IAMUser
+
+# Create a Kubernetes cluster
+  EKSRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: eks.amazonaws.com
+            Action: sts:AssumeRole
+      Path: "/"
+      Policies:
+        - PolicyName: eks-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:*
+                  - eks:*
+                Resource: "*"
+  EKSCluster:
+    Type: AWS::EKS::Cluster
+    Properties:
+      Name: my-eks-cluster
+      RoleArn: !GetAtt EKSRole.Arn
+      ResourcesVpcConfig:
+        SubnetIds:
+          - !Ref PrivateSubnet1
+          - !Ref PrivateSubnet2
+        SecurityGroupIds:
+          - !Ref EKSSecurityGroup
+
+# Create a Docker container
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: my-ecs-cluster
+  ECSTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: my-task-family
+      ContainerDefinitions:
+        - Name: my-container
+          Image: my-docker-image
+          Memory: 512
+          PortMappings:
+            - ContainerPort: 80
+              HostPort: 80
+          Environment:
+            - Name: MY_ENV_VAR
+              Value: my-env-value
+  ECSALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: my-alb
+      Scheme: internet-facing
+      Subnets:
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
+      SecurityGroups:
+        - !Ref ECSALBSecurityGroup
+      Type: application
+  ECSALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ECSALB
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref ECSALBTargetGroup
+  ECSALBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: my-target-group
+      Port: 80
+      Protocol: HTTP
+      TargetType: ip
+      VpcId: !Ref VPC
+
+# Create a MongoDB Atlas cluster
+  MongoDBCluster:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/my-bucket/mongodb.yaml
+      Parameters:
+        ClusterName: my-mongodb-cluster
+        Username: my-mongodb-user
+        Password: my-mongodb-password
+        Region: us-east-1
+```
 
