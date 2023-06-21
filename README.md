@@ -841,7 +841,7 @@ Outputs:
 8. Building AWS architectures for Web Applications using VPCs, IAM security policies, Kubernetes, Docker and MongoDB Atlas
 
 ```html
-# Create a VPC
+#Create a VPC
 Resources:
   VPC:
     Type: AWS::EC2::VPC
@@ -853,7 +853,7 @@ Resources:
         - Key: Name
           Value: my-vpc
 
-# Create an IAM user and policy
+#Create an IAM user and policy
   IAMUser:
     Type: AWS::IAM::User
     Properties:
@@ -872,7 +872,7 @@ Resources:
       Users:
         - Ref: IAMUser
 
-# Create a Kubernetes cluster
+#Create a Kubernetes cluster
   EKSRole:
     Type: AWS::IAM::Role
     Properties:
@@ -905,7 +905,7 @@ Resources:
         SecurityGroupIds:
           - !Ref EKSSecurityGroup
 
-# Create a Docker container
+#Create a Docker container
   ECSCluster:
     Type: AWS::ECS::Cluster
     Properties:
@@ -953,7 +953,7 @@ Resources:
       TargetType: ip
       VpcId: !Ref VPC
 
-# Create a MongoDB Atlas cluster
+#Create a MongoDB Atlas cluster
   MongoDBCluster:
     Type: AWS::CloudFormation::Stack
     Properties:
